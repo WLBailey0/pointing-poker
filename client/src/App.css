@@ -1,0 +1,9 @@
+html, body {
+  height: 100%;
+  margin: 0;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  background-color: #f3a948;
+  font-family: Arial, sans-serif;
+}
