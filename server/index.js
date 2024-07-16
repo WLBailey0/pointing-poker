@@ -7,19 +7,9 @@ const cors = require('cors');
 const app = express();
 const server = http.createServer(app);
 const io = socketIo(server);
-// , {
-//   cors: {
-//     origin: "http://localhost:3000", // Allow requests from your React dev server
-//     methods: ["GET", "POST"]
-//   }
-// });
 
-
-// Needed for prod
 app.use(express.static(path.join(__dirname, 'build')));
 
-//only dev
-// app.use(cors())
 
 const users = {};
 const votes = {};
