@@ -4,7 +4,7 @@ import socket from './services/socket';
 
 const PokerTable = ({ username }) => {
   const [vote, setVote] = useState(null);
-  const [votes, setVotes] = useState({});
+  const [votes, setVotes] = useState([]);
   const [showResults, setShowResults] = useState(false);
   const [users, setUsers] = useState({});
   const [hasVoted, setHasVoted] = useState({});
@@ -41,6 +41,11 @@ const PokerTable = ({ username }) => {
       socket.off('has_voted');
     };
   }, []);
+  useEffect(() => {
+    console.log("Users" + users)
+    console.log(console.log("Votes: " + votes))
+    
+  },[users])
 
   const handleVote = (value) => {
     setVote(value);
@@ -55,7 +60,17 @@ const PokerTable = ({ username }) => {
     socket.emit('clear_results')
   }
 
+  const calculateUsersAverage = (users) => {
+    const votes = Object.values(users)
+    .filter(user => user.points !== undefined)
+    .map(user => user.points);
 
+    const totalVotes = votes.length;
+    const sumVotes = votes.reduce((sum, vote) => sum + vote, 0);
+    return totalVotes > 0 ? sumVotes / totalVotes : 0;
+  }
+
+  const average = calculateUsersAverage(users);
 
   return (
     <div>
@@ -72,6 +87,8 @@ const PokerTable = ({ username }) => {
       </div>
       <button onClick={handleShowResults}>Show Results</button>
       <button onClick={handleClearResults}>Clear Results</button>
+      {console.log(votes)}
+      
       <div>
         <h3>Users in the session</h3>
         
@@ -93,15 +110,9 @@ const PokerTable = ({ username }) => {
               </tr>
             </thead>
             <tbody>
-              {Object.values(users).map((user, vote) => (
-                <tr key={vote}>
-                  <td>{user.user}</td>
-                  <td>{user.points}</td>
-                </tr>
-              ))}
             </tbody>
           </table>
-          <h4>Average: {Object.values(votes).reduce((a, b) => a + b, 0) / Object.values(votes).length}</h4>
+          <h4>Average: {average}</h4>
         </div>
       )}
     </div>

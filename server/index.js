@@ -6,8 +6,13 @@ const cors = require('cors');
 
 const app = express();
 const server = http.createServer(app);
-const io = socketIo(server);
-
+const io = socketIo(server, {
+  cors: {
+    origin: "http://localhost:3000", // Allow requests from your React dev server
+    methods: ["GET", "POST"]
+  }
+});
+app.use(cors())
 app.use(express.static(path.join(__dirname, 'build')));
 
 
@@ -30,7 +35,7 @@ io.on('connection', (socket) => {
 
   socket.on('vote', ({ username, vote }) => {
     users[username].points = vote
-    // votes[username] = vote;
+    
     io.emit('votes', votes);
     io.emit('users', users);
 
@@ -56,12 +61,11 @@ io.on('connection', (socket) => {
   });
 });
 
-//prod 
 app.get('*', (req, res) => {
   res.sendFile(path.join(__dirname, '../', 'index.html'));
 });
 
-const PORT = process.env.PORT || 80;
+const PORT = process.env.PORT || 3001;
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
