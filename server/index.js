@@ -8,7 +8,7 @@ const app = express();
 const server = http.createServer(app);
 const io = socketIo(server, {
   cors: {
-    origin: "http://localhost:3000", // Allow requests from your React dev server
+    origin: "http://localhost:3000",
     methods: ["GET", "POST"]
   }
 });
@@ -29,20 +29,19 @@ io.on('connection', (socket) => {
       user: username,
       hasVoted: false
     };
-    console.log(users)
     io.emit('users', users);
   });
 
   socket.on('vote', ({ username, vote }) => {
     users[username].points = vote
-    
+    console.log(`${username}: ${vote}`)
     io.emit('votes', votes);
     io.emit('users', users);
 
   });
 
   socket.on('show_results', () => {
-    io.emit('results', { votes });
+    io.emit('results', votes);
   });
 
   socket.on('clear_results', () => {
@@ -53,11 +52,25 @@ io.on('connection', (socket) => {
     io.emit('users', users);
   });
 
+  socket.on('set_story_title', (title) => {
+    let currentStoryTitle = title;
+    io.emit('story_title', currentStoryTitle);
+  });
+
   socket.on('disconnect', () => {
-    delete users[socket.id];
-    delete votes[socket.id];
-    io.emit('users', users);
-    io.emit('votes', votes);
+    let disconnectedUser = null;
+    for (let username in users) {
+      if (users[username].id === socket.id) {
+        disconnectedUser = username;
+        break;
+      }
+    }
+
+    if (disconnectedUser) {
+      delete users[disconnectedUser];
+      io.emit('users', Object.values(users));
+    }  
+
   });
 });
 
