@@ -1,16 +1,16 @@
-// src/PokerTable.js
 import React, { useState, useEffect } from 'react';
 import socket from './services/socket';
 
 const PokerTable = ({ username }) => {
   const [vote, setVote] = useState(null);
-  const [votes, setVotes] = useState({});
+  const [votes, setVotes] = useState([]);
   const [showResults, setShowResults] = useState(false);
   const [users, setUsers] = useState({});
   const [hasVoted, setHasVoted] = useState({});
+  const [storyTitle, setStoryTitle] = useState('');
 
   useEffect(() => {
-    socket.on('votes', (votes) => {
+    socket.on('votes', (votes, show) => {
       setVotes(votes);
     });
 
@@ -27,7 +27,9 @@ const PokerTable = ({ username }) => {
       setVotes(null);
       setShowResults(false)
       setHasVoted({})
-    })
+    });
+
+    socket.on('story_title', (title) => setStoryTitle(title));
 
     socket.on('has_voted', (voted) => {
       setHasVoted(voted);
@@ -39,6 +41,7 @@ const PokerTable = ({ username }) => {
       socket.off('users');
       socket.off('clear');
       socket.off('has_voted');
+      socket.off('story_title')
     };
   }, []);
 
@@ -54,14 +57,39 @@ const PokerTable = ({ username }) => {
   const handleClearResults = () => {
     socket.emit('clear_results')
   }
+  
+  const calculateUsersAverage = (users) => {
+    const votes = Object.values(users)
+    .filter(user => user.points !== undefined)
+    .map(user => user.points);
 
+    const totalVotes = votes.length;
+    const sumVotes = votes.reduce((sum, vote) => sum + vote, 0);
+    return totalVotes > 0 ? sumVotes / totalVotes : 0;
+  }
 
+  const average = calculateUsersAverage(users);
+
+  const handleStoryTitleChange = (event) => {
+    const title = event.target.value;
+    setStoryTitle(title);
+    socket.emit('set_story_title', title); 
+  };
 
   return (
     <div>
       <h2>Planning Poker</h2>
       
       <h3>{username}</h3>
+      <div>
+        <input
+          type="text"
+          value={storyTitle}
+          onChange={handleStoryTitleChange}
+          placeholder="Enter story title"
+          style={{ width: '100%', maxWidth: '1000px', padding: '8px' }}
+        />
+      </div>
       <div>
         <button onClick={() => handleVote(1)}>1</button> 
         <button onClick={() => handleVote(2)}>2</button>
@@ -77,8 +105,7 @@ const PokerTable = ({ username }) => {
         
         <ul>
           {Object.values(users).map((user, index) => (
-            
-            <li key={index}>{user.user} {user.points ? <span>&#x2713;</span> : ""}</li>
+            <li key={index}>{user.user} {user.points ? <span>&#x2713;</span> : ""} </li>
           ))}
         </ul>
       </div>
@@ -93,15 +120,9 @@ const PokerTable = ({ username }) => {
               </tr>
             </thead>
             <tbody>
-              {Object.values(users).map((user, vote) => (
-                <tr key={vote}>
-                  <td>{user.user}</td>
-                  <td>{user.points}</td>
-                </tr>
-              ))}
             </tbody>
           </table>
-          <h4>Average: {Object.values(votes).reduce((a, b) => a + b, 0) / Object.values(votes).length}</h4>
+          <h4>Average: {average}</h4>
         </div>
       )}
     </div>
