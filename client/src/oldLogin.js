@@ -1,15 +1,14 @@
+// src/Login.js
 import React, { useState } from 'react';
 import socket from './services/socket';
 
-const Login = ({ setUsername, setRoom }) => { // Accept setRoom prop
+const Login = ({ setUsername }) => {
   const [name, setName] = useState('');
-  const [room, setRoomName] = useState(''); // State to manage room name
 
   const handleSubmit = (e) => {
     e.preventDefault();
     setUsername(name);
-    setRoom(room); // Set the room in App state
-    socket.emit('join_room', { username: name, room }); // Emit join_room with room name
+    socket.emit('set_username', name);
   };
 
   return (
@@ -22,12 +21,6 @@ const Login = ({ setUsername, setRoom }) => { // Accept setRoom prop
           value={name}
           onChange={(e) => setName(e.target.value)}
         />
-        <input
-          type="text"
-          placeholder="Enter room name"
-          value={room}
-          onChange={(e) => setRoomName(e.target.value)} // Set room name
-        />
         <button type="submit">Join</button>
       </form>
     </div>
@@ -35,4 +28,3 @@ const Login = ({ setUsername, setRoom }) => { // Accept setRoom prop
 };
 
 export default Login;
-

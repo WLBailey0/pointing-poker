@@ -1,0 +1,14 @@
+
+> server@1.0.0 start
+> node index.js
+
+Server is running on port 8080
+Killed
+Server is running on port 8080
+Server is running on port 8080
+{ wi: { id: 'mDc9_NS-N6b239nVAAAj', user: 'wi', hasVoted: false } }
+{
+  lkjlkj: { id: 'MbpZ6XabT69R0MlWAAAl', user: 'lkjlkj', hasVoted: false }
+}
+Server is running on port 8080
+Server is running on port 8080

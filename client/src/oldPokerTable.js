@@ -1,19 +1,16 @@
 import React, { useState, useEffect } from 'react';
 import socket from './services/socket';
 
-const PokerTable = ({ username, room }) => { // Add room prop
+const PokerTable = ({ username }) => {
   const [vote, setVote] = useState(null);
   const [votes, setVotes] = useState([]);
   const [showResults, setShowResults] = useState(false);
   const [users, setUsers] = useState({});
+  const [hasVoted, setHasVoted] = useState({});
   const [storyTitle, setStoryTitle] = useState('');
 
   useEffect(() => {
-    // Join the room when the component is mounted
-    socket.emit('join_room', { username, room });
-
-    // Listen for events related to the room
-    socket.on('votes', (votes) => {
+    socket.on('votes', (votes, show) => {
       setVotes(votes);
     });
 
@@ -28,55 +25,61 @@ const PokerTable = ({ username, room }) => { // Add room prop
 
     socket.on('clear', () => {
       setVotes(null);
-      setShowResults(false);
+      setShowResults(false)
+      setHasVoted({})
     });
 
     socket.on('story_title', (title) => setStoryTitle(title));
 
+    socket.on('has_voted', (voted) => {
+      setHasVoted(voted);
+    });
+
     return () => {
-      socket.emit('leave_room', { username, room }); // Leave the room on cleanup
       socket.off('votes');
       socket.off('results');
       socket.off('users');
       socket.off('clear');
-      socket.off('story_title');
+      socket.off('has_voted');
+      socket.off('story_title')
     };
-  }, [username, room]); // Depend on username and room
+  }, []);
 
   const handleVote = (value) => {
     setVote(value);
-    socket.emit('vote', { username, vote: value, room }); // Send room with vote event
+    socket.emit('vote', { username, vote: value });
   };
 
   const handleShowResults = () => {
-    socket.emit('show_results', room); // Send room with show_results
+    socket.emit('show_results');
   };
 
   const handleClearResults = () => {
-    socket.emit('clear_results', room); // Send room with clear_results
-  };
-
-  const handleStoryTitleChange = (event) => {
-    const title = event.target.value;
-    setStoryTitle(title);
-    socket.emit('set_story_title', { title, room }); // Send room with story title
-  };
-
+    socket.emit('clear_results')
+  }
+  
   const calculateUsersAverage = (users) => {
     const votes = Object.values(users)
-      .filter(user => user.points !== undefined)
-      .map(user => user.points);
+    .filter(user => user.points !== undefined)
+    .map(user => user.points);
 
     const totalVotes = votes.length;
     const sumVotes = votes.reduce((sum, vote) => sum + vote, 0);
     return totalVotes > 0 ? Number((sumVotes / totalVotes).toFixed(2)) : 0;
-  };
+  }
 
   const average = calculateUsersAverage(users);
+
+  const handleStoryTitleChange = (event) => {
+    const title = event.target.value;
+    setStoryTitle(title);
+    socket.emit('set_story_title', title); 
+  };
 
   return (
     <div>
       <h2>Planning Poker</h2>
+      
       <h3>{username}</h3>
       <div>
         <input
@@ -88,7 +91,7 @@ const PokerTable = ({ username, room }) => { // Add room prop
         />
       </div>
       <div>
-        <button onClick={() => handleVote(1)}>1</button>
+        <button onClick={() => handleVote(1)}>1</button> 
         <button onClick={() => handleVote(2)}>2</button>
         <button onClick={() => handleVote(3)}>3</button>
         <button onClick={() => handleVote(5)}>5</button>
@@ -99,11 +102,10 @@ const PokerTable = ({ username, room }) => { // Add room prop
       <button onClick={handleClearResults}>Clear Results</button>
       <div>
         <h3>Users in the session</h3>
+        
         <ul>
           {Object.values(users).map((user, index) => (
-            <li key={index}>
-              {user.user} {user.points ? <span>&#x2713;</span> : ''}
-            </li>
+            <li key={index}>{user.user} {user.points ? <span>&#x2713;</span> : ""} </li>
           ))}
         </ul>
       </div>
@@ -116,14 +118,15 @@ const PokerTable = ({ username, room }) => { // Add room prop
                 <th>Username</th>
                 <th>Vote</th>
               </tr>
-              {Object.values(users).map((user, index) => (
-                <tr key={index}>
+	       {Object.values(users).map((user, vote) => (
+                <tr key={vote}>
                   <td>{user.user}</td>
                   <td>{user.points}</td>
                 </tr>
               ))}
             </thead>
-            <tbody></tbody>
+            <tbody>
+            </tbody>
           </table>
           <h4>Average: {average}</h4>
         </div>
@@ -133,4 +136,3 @@ const PokerTable = ({ username, room }) => { // Add room prop
 };
 
 export default PokerTable;
-

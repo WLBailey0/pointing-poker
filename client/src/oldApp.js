@@ -6,22 +6,13 @@ import './App.css'
 
 const App = () => {
   const [username, setUsername] = useState('');
-  const [room, setRoom] = useState(''); // Add room state
 
   return (
     <Router>
       <div>
         <Routes>
-          <Route 
-            path="/" 
-            element={
-              username && room ? (
-                <PokerTable username={username} room={room} />
-              ) : (
-                <Login setUsername={setUsername} setRoom={setRoom} /> // Pass setRoom to Login
-              )
-            }
-          />
+          <Route path="/" element = {username ? <PokerTable username={username} /> : <Login setUsername={setUsername} />}>
+          </Route>
         </Routes>
       </div>
     </Router>
@@ -29,4 +20,3 @@ const App = () => {
 };
 
 export default App;
-

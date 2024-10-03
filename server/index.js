@@ -9,68 +9,116 @@ const io = socketIo(server);
 
 app.use(express.static(path.join(__dirname, '../client/build')));
 
-
-const users = {};
-const votes = {};
-
-
+const rooms = {}; 
 
 io.on('connection', (socket) => {
-  socket.on('set_username', (username) => {
+
+  socket.on('join_room', ({ username, room }) => {
+    try{
     
-    users[username] = {
-      id: socket.id,
-      user: username,
-      hasVoted: false
-    };
-    console.log(users)
-    io.emit('users', users);
-  });
+      if (!rooms[room]) {
+        rooms[room] = {
+          users: {},
+          votes: {},
+        };
+      }
 
-  socket.on('vote', ({ username, vote }) => {
-    users[username].points = vote
-    // votes[username] = vote;
-    io.emit('votes', votes);
-    io.emit('users', users);
-    console.log(username + ": " + vote);
+    
+      rooms[room].users[username] = {
+        id: socket.id,
+        user: username,
+        hasVoted: false,
+      };
 
-  });
+    
+      socket.join(room);
 
-  socket.on('show_results', () => {
-    io.emit('results', { votes });
-    console.log("show results clicked");
-  });
-
-  socket.on('clear_results', () => {
-    for (let user in users) {
-      users[user].points = undefined;
+    
+      io.to(room).emit('users', rooms[room].users);
+      console.log(`User ${username} joined room: ${room}`);
+    } catch (err) {
+        console.log(`Error in join_room ${err}`)
     }
-    io.emit('clear');
-    io.emit('users', users);
   });
 
-  socket.on('set_story_title', (title) => {
-    let currentStoryTitle = title;
-    io.emit('story_title', currentStoryTitle);
+  socket.on('vote', ({ username, vote, room }) => {
+    try {
+      const roomData = rooms[room];
+      if (roomData && roomData.users[username]) {
+        roomData.users[username].points = vote;
+        io.to(room).emit('votes', roomData.votes);
+        io.to(room).emit('users', roomData.users);
+      }
+    } catch (err) {
+      console.error(`Error in vote: ${err}`);
+    }
+  });
+
+  socket.on('show_results', (room) => {
+    try {
+      const roomData = rooms[room];
+      if (roomData) {
+        io.to(room).emit('results', { votes: roomData.votes });
+      }
+    } catch (err) {
+      console.error(`Error in show results: ${err}`);
+    }
+  });
+
+  socket.on('clear_results', (room) => {
+    try {
+      const roomData = rooms[room];
+      if (roomData) {
+        for (let user in roomData.users) {
+          roomData.users[user].points = undefined;
+        }
+        io.to(room).emit('clear');
+        io.to(room).emit('users', roomData.users);
+      }
+    } catch (err) {
+      console.error(`Error in clear results: ${err}`);
+    }
+  });
+
+  socket.on('set_story_title', ({ title, room }) => {
+    try {
+      io.to(room).emit('story_title', title);
+    } catch (err) {
+      console.log(`Error setting story title: ${err}`);
+    }
+  });
+
+  socket.on('leave_room', ({ username, room }) => {
+    try {
+      const roomData = rooms[room];
+      if (roomData && roomData.users[username]) {
+        delete roomData.users[username];
+        socket.leave(room);
+        io.to(room).emit('users', roomData.users);
+        console.log(`User ${username} left room: ${room}`);
+      }
+    } catch (err) {
+      console.error("Error in leave_room");
+    }
   });
 
   socket.on('disconnect', () => {
-    let disconnectedUser = null;
-    for (let username in users) {
-      if (users[username].id === socket.id) {
-        disconnectedUser = username;
-        break;
+    try {
+      for (let room in rooms) {
+        for (let username in rooms[room].users) {
+          if (rooms[room].users[username].id === socket.id) {
+            delete rooms[room].users[username];
+            io.to(room).emit('users', rooms[room].users);
+            console.log(`User ${username} disconnected from room: ${room}`);
+            break;
+          }
+        }
       }
+    } catch (err) {
+      console.error("Error in disconnect");
     }
-
-    if (disconnectedUser) {
-      delete users[disconnectedUser];
-      io.emit('users', Object.values(users));
-    }  
-
   });
 });
-
 
 app.get('/*', (req, res) => {
   res.sendFile(path.join(__dirname, '../client/build', 'index.html'));
@@ -80,3 +128,4 @@ const PORT = 8080;
 server.listen(PORT, () => {
   console.log(`Server is running on port ${PORT}`);
 });
+
